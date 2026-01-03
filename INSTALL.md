@@ -69,6 +69,9 @@ RPM packaging (RHEL/Rocky)
     cp contrib/rpm/backup-manager.spec ~/rpmbuild/SPECS/
     rpmbuild -ba ~/rpmbuild/SPECS/backup-manager.spec
 
+The RPM installs a default config at /etc/backup-manager.conf (noreplace)
+and a cron script at /etc/cron.daily/backup-manager.
+
 
 For Apple macOS with Fink
 -------------------------

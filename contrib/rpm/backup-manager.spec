@@ -46,6 +46,10 @@ make build
 
 %install
 make install PREFIX=%{_prefix} DESTDIR=%{buildroot} PERL5DIR=%{perl_vendorlib}
+install -d %{buildroot}%{_sysconfdir}
+install -m 0644 backup-manager.conf.tpl %{buildroot}%{_sysconfdir}/backup-manager.conf
+install -d %{buildroot}%{_sysconfdir}/cron.daily
+install -m 0755 contrib/cron/backup-manager %{buildroot}%{_sysconfdir}/cron.daily/backup-manager
 
 %files
 %license COPYING
@@ -54,6 +58,8 @@ make install PREFIX=%{_prefix} DESTDIR=%{buildroot} PERL5DIR=%{perl_vendorlib}
 %{_bindir}/backup-manager-purge
 %{_bindir}/backup-manager-upload
 %{_datadir}/backup-manager/backup-manager.conf.tpl
+%config(noreplace) %{_sysconfdir}/backup-manager.conf
+%{_sysconfdir}/cron.daily/backup-manager
 %{bm_libdir}/*.sh
 %{bm_contribdir}/*.sh
 %{perl_vendorlib}/BackupManager/*.pm
@@ -63,3 +69,4 @@ make install PREFIX=%{_prefix} DESTDIR=%{buildroot} PERL5DIR=%{perl_vendorlib}
 %changelog
 * Fri Oct 04 2024 Pablo Canto - 0.7.18-1
 - RPM packaging for RHEL/Rocky
+- Install default config and cron.daily script
