@@ -66,6 +66,11 @@ Installation
 
 See the INSTALL.md file.
 
+If `make install` fails during the translations step with "xgettext: No such file or directory",
+install `gettext` (it provides `xgettext`) and rerun `make install`.
+
+For RHEL/Rocky dependencies and RPM build steps, see INSTALL.md and contrib/rpm/README.md.
+
 
 Reporting Bugs
 --------------

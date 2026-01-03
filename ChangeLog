@@ -5,7 +5,8 @@ Backup Manager 0.7.18
       * Improve external command detection and provide xorriso/cdrskin fallbacks
       * Support mongosh for MongoDB database listing
       * Add extra checks for burning and upload commands
-      * Document Rocky Linux notes and rclone dependency
+      * Document Rocky Linux dependencies and RPM build steps
+      * Add RPM spec and build notes for RHEL/Rocky packaging
 
 Backup Manager 0.7.17
 
