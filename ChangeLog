@@ -8,6 +8,7 @@ Backup Manager 0.7.18
       * Document Rocky Linux dependencies and RPM build steps
       * Add RPM spec and build notes for RHEL/Rocky packaging
       * Install default config and cron.daily script in RPM build
+      * Unset GZIP to avoid gzip warnings at runtime
 
 Backup Manager 0.7.17
 

@@ -4,6 +4,10 @@ function bm_find_executable()
     command -v "$1" 2>/dev/null
 }
 
+if [[ -n "${GZIP:-}" ]]; then
+    unset GZIP
+fi
+
 zip=$(bm_find_executable zip) || true
 bzip=$(bm_find_executable bzip2) || true
 pbzip2=$(bm_find_executable pbzip2) || true
