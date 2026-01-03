@@ -9,6 +9,9 @@ Source0:        %{name}-%{version}.tar.gz
 
 BuildArch:      noarch
 
+%global bm_libdir %{_prefix}/lib/backup-manager
+%global bm_contribdir %{bm_libdir}/contrib
+
 BuildRequires:  make
 BuildRequires:  gettext
 BuildRequires:  perl
@@ -51,10 +54,12 @@ make install PREFIX=%{_prefix} DESTDIR=%{buildroot} PERL5DIR=%{perl_vendorlib}
 %{_bindir}/backup-manager-purge
 %{_bindir}/backup-manager-upload
 %{_datadir}/backup-manager/backup-manager.conf.tpl
-%{_libdir}/backup-manager/*.sh
-%{_libdir}/backup-manager/contrib/*.sh
+%{bm_libdir}/*.sh
+%{bm_contribdir}/*.sh
 %{perl_vendorlib}/BackupManager/*.pm
 %{_mandir}/man8/backup-manager*.8*
 %{_datadir}/locale/*/LC_MESSAGES/backup-manager.mo
 
 %changelog
+* Fri Oct 04 2024 Pablo Canto - 0.7.18-1
+- RPM packaging for RHEL/Rocky
