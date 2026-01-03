@@ -270,7 +270,7 @@ function burn_session()
     # burning the iso with the user choosen method
     case "$BM_BURNING_METHOD" in
         "DVD")
-            if [[ ! -x $growisofs ]]; then
+            if [[ -z "$growisofs" ]] || [[ ! -x "$growisofs" ]]; then
                 error "DVD+R(W) burning requires \$growisofs, aborting."
             fi
             
@@ -282,10 +282,10 @@ function burn_session()
         ;;
         
         "DVD-RW")
-            if [[ ! -x $growisofs ]]; then
+            if [[ -z "$growisofs" ]] || [[ ! -x "$growisofs" ]]; then
                 error "DVD-R(W) burning requires \$growisofs, aborting."
             fi
-            if [[ ! -x $dvdrwformat ]]; then
+            if [[ -z "$dvdrwformat" ]] || [[ ! -x "$dvdrwformat" ]]; then
                 error "DVD-R(W) burning requires \$dvdrwformat, aborting."
             fi
             
@@ -302,8 +302,11 @@ function burn_session()
         ;;
         
         "CDRW")
-            if [[ ! -x $cdrecord ]]; then
+            if [[ -z "$cdrecord" ]] || [[ ! -x "$cdrecord" ]]; then
                 error "CD-R(W) burning requires \$cdrecord, aborting."
+            fi
+            if [[ -z "$mkisofs" ]]; then
+                error "CD-R(W) burning requires mkisofs (or xorriso), aborting."
             fi
                         
             info "Blanking the CDRW in \$BM_BURNING_DEVICE."
@@ -320,8 +323,11 @@ function burn_session()
         ;;
         
         "CDR")
-            if [[ ! -x $cdrecord ]]; then
+            if [[ -z "$cdrecord" ]] || [[ ! -x "$cdrecord" ]]; then
                 error "CD-R(W) burning requires \$cdrecord, aborting."
+            fi
+            if [[ -z "$mkisofs" ]]; then
+                error "CD-R(W) burning requires mkisofs (or xorriso), aborting."
             fi
 
             info "Burning data to \$BM_BURNING_DEVICE."

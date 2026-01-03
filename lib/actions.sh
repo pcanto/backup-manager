@@ -94,6 +94,9 @@ function upload_files()
         s3|S3)
             bm_upload_s3
         ;;
+        rclone|RCLONE)
+            bm_upload_rclone
+        ;;
         none|disabled)
             info "No upload method used."
         ;;

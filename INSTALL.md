@@ -3,7 +3,17 @@ Dependencies
 
 - If you want to enable the localisation, you need gettext.
 - Perl is needed for FTP and SSH uploads.
+- Rclone is needed for the rclone upload method.
 - Everything else is written in Bash.
+
+Rocky Linux 9/10 notes
+----------------------
+
+- CD/DVD burning can use `xorriso` (mkisofs-compatible) and `cdrskin` if
+  `mkisofs`/`cdrecord` are not present. Install `xorriso` and `dvd+rw-tools`
+  if you need burning support.
+- MongoDB database listing supports `mongosh` as a replacement for the legacy
+  `mongo` shell.
 
 
 How to install backup-manager

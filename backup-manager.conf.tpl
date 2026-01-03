@@ -276,6 +276,7 @@ export BM_MONGODB_DATABASES="__ALL__"
 # The user who is allowed to read every databases filled in BM_MYSQL_DATABASES
 # Typical sysbackup user can be created by the following command:
 # mongo --quiet --username=root admin
+# (or: mongosh --quiet --username=root admin)
 # > use admin
 # > db.createUser({user:"sysbackup",pwd:"somesecret",roles:["backup","clusterAdmin","readAnyDatabase"]});
 # > quit()
@@ -370,6 +371,7 @@ export BM_PIPE_COMPRESS
 # - ftp
 # - rsync
 # - s3
+# - rclone
 # - none
 
 # If you don't want to use any upload method (you don't want to
@@ -537,6 +539,22 @@ export BM_UPLOAD_RSYNC_EXTRA_OPTIONS=""
 # By default, no bandwidth limit is applied.
 # Example: 32M, 1024K, ...
 export BM_UPLOAD_RSYNC_BANDWIDTH_LIMIT=""
+
+##############################################################
+# The RCLONE method
+#############################################################
+
+# Name of the configured rclone remote (see `rclone config`)
+export BM_UPLOAD_RCLONE_REMOTE=""
+
+# Destination path inside the rclone remote (overrides BM_UPLOAD_DESTINATION)
+export BM_UPLOAD_RCLONE_DESTINATION=""
+
+# Purge remote destination before uploading?
+export BM_UPLOAD_RCLONE_PURGE="false"
+
+# Extra options to append to rclone
+export BM_UPLOAD_RCLONE_EXTRA_OPTIONS=""
 
 ##############################################################
 # Section "BURNING"

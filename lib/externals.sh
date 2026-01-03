@@ -1,29 +1,44 @@
 # All external programs used must be initialized here
-zip=$(which zip 2> /dev/null) || true
-bzip=$(which bzip2 2> /dev/null) || true
-pbzip2=$(which pbzip2 2> /dev/null) || true
-gzip=$(which gzip 2> /dev/null) || true
-gpg=$(which gpg 2> /dev/null) || true
-xz=$(which xz 2> /dev/null) || true
-zstd=$(which zstd 2> /dev/null) || true
-lzma=$(which lzma 2> /dev/null) || true
-dar=$(which dar 2> /dev/null) || true
-tar=$(which tar 2> /dev/null) || true
-rsync=$(which rsync 2> /dev/null) || true
-mkisofs=$(which mkisofs 2> /dev/null) || mkisofs=$(which genisoimage 2> /dev/null) || true
-growisofs=$(which growisofs 2> /dev/null) || true
-dvdrwformat=$(which dvd+rw-format 2> /dev/null) || true
-cdrecord=$(which cdrecord 2> /dev/null) || cdrecord=$(which wodim 2> /dev/null) || true
-md5sum=$(which md5sum 2> /dev/null) || true
-bc=$(which bc 2> /dev/null) || true
-mysqldump=$(which mysqldump 2> /dev/null) || true
-mysql=$(which mysql 2> /dev/null) || true
-mariadbdump=$(which mariadb-dump 2> /dev/null) || true
-mariadb=$(which mariadb 2> /dev/null) || true
-pgdump=$(which pg_dump 2>/dev/null) || true
-svnadmin=$(which svnadmin 2> /dev/null) || true
-logger=$(which logger 2> /dev/null) || true
-nice_bin=$(which nice 2> /dev/null) || true
-dd=$(which dd 2> /dev/null) || true
-mongodump=$(which mongodump 2> /dev/null) || true
-mongo=$(which mongo 2> /dev/null) || true
+function bm_find_executable()
+{
+    command -v "$1" 2>/dev/null
+}
+
+zip=$(bm_find_executable zip) || true
+bzip=$(bm_find_executable bzip2) || true
+pbzip2=$(bm_find_executable pbzip2) || true
+gzip=$(bm_find_executable gzip) || true
+gpg=$(bm_find_executable gpg) || true
+xz=$(bm_find_executable xz) || true
+zstd=$(bm_find_executable zstd) || true
+lzma=$(bm_find_executable lzma) || true
+dar=$(bm_find_executable dar) || true
+tar=$(bm_find_executable tar) || true
+rsync=$(bm_find_executable rsync) || true
+rclone=$(bm_find_executable rclone) || true
+mkisofs=$(bm_find_executable mkisofs) || mkisofs=$(bm_find_executable genisoimage) || true
+xorriso=$(bm_find_executable xorriso) || true
+if [[ -z "$mkisofs" ]] && [[ -n "$xorriso" ]]; then
+    mkisofs="$xorriso -as mkisofs"
+fi
+growisofs=$(bm_find_executable growisofs) || true
+dvdrwformat=$(bm_find_executable dvd+rw-format) || true
+cdrskin=$(bm_find_executable cdrskin) || true
+cdrecord=$(bm_find_executable cdrecord) || cdrecord=$(bm_find_executable wodim) || true
+if [[ -z "$cdrecord" ]] && [[ -n "$cdrskin" ]]; then
+    cdrecord="$cdrskin"
+fi
+md5sum=$(bm_find_executable md5sum) || true
+bc=$(bm_find_executable bc) || true
+mysqldump=$(bm_find_executable mysqldump) || true
+mysql=$(bm_find_executable mysql) || true
+mariadbdump=$(bm_find_executable mariadb-dump) || true
+mariadb=$(bm_find_executable mariadb) || true
+pgdump=$(bm_find_executable pg_dump) || true
+svnadmin=$(bm_find_executable svnadmin) || true
+logger=$(bm_find_executable logger) || true
+nice_bin=$(bm_find_executable nice) || true
+dd=$(bm_find_executable dd) || true
+mongodump=$(bm_find_executable mongodump) || true
+mongo=$(bm_find_executable mongo) || true
+mongosh=$(bm_find_executable mongosh) || true

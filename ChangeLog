@@ -1,3 +1,12 @@
+Backup Manager 0.7.18
+
+    [ Pablo Canto ]
+      * Add rclone upload method
+      * Improve external command detection and provide xorriso/cdrskin fallbacks
+      * Support mongosh for MongoDB database listing
+      * Add extra checks for burning and upload commands
+      * Document Rocky Linux notes and rclone dependency
+
 Backup Manager 0.7.17
 
     [ Fabien Marsaud ]

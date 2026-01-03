@@ -32,10 +32,68 @@ function bm_upload_init()
 
 }
 
+function bm_require_bmu()
+{
+    if [[ -z "$bmu" ]] || [[ ! -x "$bmu" ]]; then
+        error "backup-manager-upload is not available at \"\$bmu\"."
+    fi
+}
+
+function bm_upload_list_archives()
+{
+    date="$1"
+    BM_UPLOAD_FILES=()
+
+    if [[ -z "$BM_REPOSITORY_ROOT" ]]; then
+        error "No repository root configured, upload not possible."
+    fi
+    if [[ ! -d "$BM_REPOSITORY_ROOT" ]]; then
+        error "The repository \$BM_REPOSITORY_ROOT does not exist."
+    fi
+    if [[ ! -r "$BM_REPOSITORY_ROOT" ]]; then
+        error "The repository \$BM_REPOSITORY_ROOT is not readable by user \"\$USER\"."
+    fi
+
+    shopt -s nullglob
+    for file in "$BM_REPOSITORY_ROOT"/*"$date"*
+    do
+        if [[ -n "$BM_UPLOADED_ARCHIVES" ]] && [[ -f "$BM_UPLOADED_ARCHIVES" ]]; then
+            if grep -F -q "$file " "$BM_UPLOADED_ARCHIVES" 2>/dev/null; then
+                continue
+            fi
+        fi
+        BM_UPLOAD_FILES+=("$file")
+    done
+    shopt -u nullglob
+}
+
+function bm_upload_mark_uploaded()
+{
+    file="$1"
+    host="$2"
+
+    if [[ -z "$BM_UPLOADED_ARCHIVES" ]]; then
+        return 0
+    fi
+
+    if [[ ! -f "$BM_UPLOADED_ARCHIVES" ]]; then
+        touch "$BM_UPLOADED_ARCHIVES" 2>/dev/null || {
+            warning "Unable to update \$BM_UPLOADED_ARCHIVES."
+            return 0
+        }
+    fi
+
+    if ! grep -F -q "$file " "$BM_UPLOADED_ARCHIVES" 2>/dev/null; then
+        printf '%s %s\n' "$file" "$host" >> "$BM_UPLOADED_ARCHIVES" || \
+            warning "Unable to update \$BM_UPLOADED_ARCHIVES."
+    fi
+}
+
 # Manages SSH uploads
 function bm_upload_ssh()
 {
     info "Using the upload method \"ssh\"."
+    bm_require_bmu
     
     bm_upload_hosts="$BM_UPLOAD_HOSTS $BM_UPLOAD_SSH_HOSTS"
     bm_upload_init "$bm_upload_hosts"
@@ -74,6 +132,7 @@ function bm_upload_ssh()
 function bm_upload_ssh_gpg()
 {
     info "Using the upload method \"ssh-gpg\"."
+    bm_require_bmu
     
     bm_upload_hosts="$BM_UPLOAD_HOSTS $BM_UPLOAD_SSH_HOSTS"
     bm_upload_init "$bm_upload_hosts"
@@ -110,6 +169,7 @@ function bm_upload_ssh_gpg()
 function bm_upload_ftp()
 {
     info "Using the upload method \"ftp\"."
+    bm_require_bmu
 
     bm_upload_hosts="$BM_UPLOAD_HOSTS $BM_UPLOAD_FTP_HOSTS"
     bm_upload_init "$bm_upload_hosts" 
@@ -133,6 +193,9 @@ function bm_upload_ftp()
     if [[ "$BM_UPLOAD_FTP_TEST" = "true" ]]; then
             ftp_test_switch="--ftp-test"
 		# create the test file
+        if [[ -z "$dd" ]] || [[ ! -x "$dd" ]]; then
+            error "The ftp test file requires \$dd."
+        fi
 		$dd if=/dev/zero of=$BM_REPOSITORY_ROOT/2mb_file.dat bs=1M count=2 > /dev/null 2>&1
     fi
  
@@ -152,6 +215,7 @@ function bm_upload_ftp()
 function bm_upload_s3()
 {
     info "Using the upload method \"S3\"."
+    bm_require_bmu
 
     bm_upload_hosts="s3.amazon.com"
     bm_upload_init "$bm_upload_hosts" 
@@ -213,6 +277,10 @@ function _exec_rsync_command()
 # Manages RSYNC uploads
 function bm_upload_rsync_common()
 {
+    if [[ -z "$rsync" ]] || [[ ! -x "$rsync" ]]; then
+        error "The rsync upload method requires \$rsync."
+    fi
+
     bm_upload_hosts="$BM_UPLOAD_HOSTS $BM_UPLOAD_RSYNC_HOSTS"
     bm_upload_init "$bm_upload_hosts"
 
@@ -277,4 +345,48 @@ function bm_upload_rsync_snapshots()
   info "Using the upload method \"rsync-snapshots\"."
   RSYNC_SUBDIR=${TODAY}
   bm_upload_rsync_common
+}
+
+function bm_upload_rclone()
+{
+    info "Using the upload method \"rclone\"."
+
+    if [[ -z "$rclone" ]] || [[ ! -x "$rclone" ]]; then
+        error "The rclone upload method requires \$rclone."
+    fi
+
+    if [[ -z "$BM_UPLOAD_RCLONE_REMOTE" ]]; then
+        error "No rclone remote configured, set BM_UPLOAD_RCLONE_REMOTE."
+    fi
+
+    if [[ -z "$BM_UPLOAD_RCLONE_DESTINATION" ]]; then
+        BM_UPLOAD_RCLONE_DESTINATION="$BM_UPLOAD_DESTINATION"
+    fi
+    if [[ -z "$BM_UPLOAD_RCLONE_DESTINATION" ]]; then
+        error "No valid destination found, rclone upload not possible."
+    fi
+
+    bm_upload_list_archives "$TODAY"
+    if [[ ${#BM_UPLOAD_FILES[@]} -eq 0 ]]; then
+        info "No files to upload for \$TODAY."
+        return 0
+    fi
+
+    target="${BM_UPLOAD_RCLONE_REMOTE}:${BM_UPLOAD_RCLONE_DESTINATION}"
+    logfile="$(mktemp ${BM_TEMP_DIR}/bm-rclone.XXXXXX)"
+
+    if [[ "$BM_UPLOAD_RCLONE_PURGE" = "true" ]]; then
+        info "Purging remote rclone target \$target."
+        $rclone $BM_UPLOAD_RCLONE_EXTRA_OPTIONS purge "$target" >>"$logfile" 2>&1 || \
+            error "Rclone purge failed; check \$logfile."
+    fi
+
+    for file in "${BM_UPLOAD_FILES[@]}"
+    do
+        $rclone $BM_UPLOAD_RCLONE_EXTRA_OPTIONS copy "$file" "$target" >>"$logfile" 2>&1 || \
+            error "Rclone upload failed; check \$logfile."
+        bm_upload_mark_uploaded "$file" "$target"
+    done
+
+    rm -f "$logfile"
 }

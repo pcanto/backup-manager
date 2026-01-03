@@ -1177,6 +1177,10 @@ function backup_method_mongodb()
     if [[ ! -x $mongodump ]]; then
         error "The \"mongodb\" method is chosen, but \$mongodump is not found."
     fi
+    mongo_shell="$mongo"
+    if [[ -z "$mongo_shell" ]] && [[ -n "$mongosh" ]]; then
+        mongo_shell="$mongosh"
+    fi
 
     # SECURITY CAVEAT: Because of https://jira.mongodb.org/browse/SERVER-5897 the password is disclosed thru ps during the backup
     base_command="echo $BM_MONGODB_BACKUPPASS | $mongodump --authenticationDatabase=admin --quiet --username=$BM_MONGODB_BACKUPLOGIN --host=$BM_MONGODB_HOST:$BM_MONGODB_PORT $BM_MONGODB_EXTRA_OPTIONS --gzip --archive "
@@ -1185,11 +1189,14 @@ function backup_method_mongodb()
         # get each DB name if backing up separately
     if [ "$BM_MONGODB_DATABASES" = "__ALL__" ]; then
         if [ "$BM_MONGODB_SEPARATELY" = "true" ]; then
-            if [[ ! -x $mongo ]]; then
-                error "Can't find "$mongo" but this is needed when backing up databases separately."
+            if [[ -z "$mongo_shell" ]]; then
+                error "Can't find mongo or mongosh but this is needed when backing up databases separately."
             fi
-            
-            DBNAMES=$(echo 'var _=db.auth("'${BM_MONGODB_BACKUPLOGIN}'","'${BM_MONGODB_BACKUPPASS}'");_=db.adminCommand({listDatabases:1,nameOnly:true}).databases.forEach(function(d){print(d.name);});' | $mongo --quiet --host $BM_MONGODB_HOST:$BM_MONGODB_PORT admin)
+
+            DBNAMES=$($mongo_shell --quiet --host "$BM_MONGODB_HOST:$BM_MONGODB_PORT" \
+                --username="$BM_MONGODB_BACKUPLOGIN" --password="$BM_MONGODB_BACKUPPASS" \
+                --authenticationDatabase=admin $BM_MONGODB_EXTRA_OPTIONS \
+                --eval 'db.adminCommand({listDatabases:1,nameOnly:true}).databases.forEach(function(d){print(d.name);});' admin)
 
             # if DBs are excluded
             for exclude in $BM_MONGODB_DBEXCLUDE
