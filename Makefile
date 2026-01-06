@@ -158,6 +158,15 @@ testperldir:
 docs:
 	make -C doc all
 
+build-rpm:
+	@VERSION=$$(cat VERSION); \
+	echo "*** Building RPM for Backup Manager $$VERSION ***"; \
+	git archive --prefix=backup-manager-$$VERSION/ -o backup-manager-$$VERSION.tar.gz HEAD; \
+	rpmdev-setuptree; \
+	cp backup-manager-$$VERSION.tar.gz ~/rpmbuild/SOURCES/; \
+	cp contrib/rpm/backup-manager.spec ~/rpmbuild/SPECS/; \
+	rpmbuild -ba ~/rpmbuild/SPECS/backup-manager.spec
+
 clean:
 	rm -f build-stamp
 	rm -rf debian/backup-manager
@@ -165,4 +174,3 @@ clean:
 	#rm -f man/*.8
 	$(MAKE) -C po clean
 	$(MAKE) -C doc clean
-

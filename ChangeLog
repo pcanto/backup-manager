@@ -10,6 +10,7 @@ Backup Manager 0.7.18
       * Install default config and cron.daily script in RPM build
       * Unset GZIP to avoid gzip warnings at runtime
       * Use pigz for gzip when available with configurable thread limits (half/all/number)
+      * Add a build-rpm Makefile target to streamline RPM packaging
 
 Backup Manager 0.7.17
 

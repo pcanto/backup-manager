@@ -16,3 +16,7 @@ RPM build instructions
     cp backup-manager-$VERSION.tar.gz ~/rpmbuild/SOURCES/
     cp contrib/rpm/backup-manager.spec ~/rpmbuild/SPECS/
     rpmbuild -ba ~/rpmbuild/SPECS/backup-manager.spec
+
+Alternatively, use the Makefile target (performs steps 2-3):
+
+    make build-rpm
