@@ -160,6 +160,7 @@ confkey_handle_deprecated "BM_BACKUP_METHOD" "BM_ARCHIVE_METHOD"
 confkey_require "BM_ARCHIVE_METHOD" "tarball"
 
 confkey_require "BM_ARCHIVE_NICE_LEVEL" "10"
+confkey_require "BM_GZIP_THREADS" "half"
 
 if [[ "$BM_ARCHIVE_METHOD" = "tarball-incremental" ]] && 
    [[ -z "$BM_TARBALLINC_MASTERDATETYPE" ]]; then

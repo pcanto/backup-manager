@@ -126,6 +126,50 @@ function handle_tarball_error()
     chown_archive "$target"
 }
 
+function __get_available_cores()
+{
+    cores=""
+    if command -v getconf >/dev/null 2>&1; then
+        cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null)
+    fi
+    if [[ -z "$cores" ]] && command -v nproc >/dev/null 2>&1; then
+        cores=$(nproc 2>/dev/null)
+    fi
+    if [[ -z "$cores" ]] && command -v sysctl >/dev/null 2>&1; then
+        cores=$(sysctl -n hw.ncpu 2>/dev/null)
+    fi
+    if [[ -z "$cores" ]] || ! [[ "$cores" =~ ^[0-9]+$ ]] || [[ "$cores" -lt 1 ]]; then
+        cores=1
+    fi
+    echo "$cores"
+}
+
+function __get_pigz_threads_opt()
+{
+    threads=""
+    case "$BM_GZIP_THREADS" in
+        ""|"auto"|"half")
+            threads="$(__get_available_cores)"
+            threads=$((threads / 2))
+            if [[ "$threads" -lt 1 ]]; then
+                threads=1
+            fi
+        ;;
+        "all")
+            threads="$(__get_available_cores)"
+        ;;
+        *)
+            if [[ "$BM_GZIP_THREADS" =~ ^[0-9]+$ ]] && [[ "$BM_GZIP_THREADS" -gt 0 ]]; then
+                threads="$BM_GZIP_THREADS"
+            fi
+        ;;
+    esac
+
+    if [[ -n "$threads" ]]; then
+        echo "-p $threads"
+    fi
+}
+
 function __exec_meta_command()
 {
     nice="$nice_bin -n $BM_ARCHIVE_NICE_LEVEL"
@@ -144,9 +188,18 @@ function __exec_meta_command()
 
         case "$compress" in
         "gzip"|"gz"|"bzip"|"bzip2")
+            compress_opts="-f -q -9"
             if [[ "$compress" = "gzip" ]] ||
                [[ "$compress" = "gz" ]]; then
-               compress_bin=$gzip
+               if [[ -n "$pigz" ]]; then
+                   compress_bin=$pigz
+                   pigz_threads="$(__get_pigz_threads_opt)"
+                   if [[ -n "$pigz_threads" ]]; then
+                       compress_opts="$compress_opts $pigz_threads"
+                   fi
+               else
+                   compress_bin=$gzip
+               fi
                 if [[ -z "$compress_bin" ]]; then
                     error "gzip is not installed but gzip compression needed."
                 fi
@@ -170,14 +223,14 @@ function __exec_meta_command()
                 debug "$command > $file_to_create 2> $logfile"
                 tail_logfile "$logfile"
                 if [[ "$BM_ENCRYPTION_METHOD" = "gpg" ]]; then
-                    $command 2>$logfile | $nice $compress_bin -f -q -9 2>$logfile | $nice $gpg $BM__GPG_HOMEDIR -r "$BM_ENCRYPTION_RECIPIENT" -e > $file_to_create.$ext.gpg 2> $logfile
+                    $command 2>$logfile | $nice $compress_bin $compress_opts 2>$logfile | $nice $gpg $BM__GPG_HOMEDIR -r "$BM_ENCRYPTION_RECIPIENT" -e > $file_to_create.$ext.gpg 2> $logfile
                     cmdpipestatus=${PIPESTATUS[0]}
-                    debug "$command | $nice $compress_bin -f -q -9 | $nice $gpg $BM__GPG_HOMEDIR -r \"$BM_ENCRYPTION_RECIPIENT\" -e > $file_to_create.$ext.gpg 2> $logfile"
+                    debug "$command | $nice $compress_bin $compress_opts | $nice $gpg $BM__GPG_HOMEDIR -r \"$BM_ENCRYPTION_RECIPIENT\" -e > $file_to_create.$ext.gpg 2> $logfile"
                     file_to_create="$file_to_create.$ext.gpg"
                 else
-                    $command 2> $logfile | $nice $compress_bin -f -q -9 > $file_to_create.$ext 2> $logfile
+                    $command 2> $logfile | $nice $compress_bin $compress_opts > $file_to_create.$ext 2> $logfile
                     cmdpipestatus=${PIPESTATUS[0]}
-                    debug "$command 2> $logfile | $nice $compress_bin -f -q -9 > $file_to_create.$ext 2> $logfile"
+                    debug "$command 2> $logfile | $nice $compress_bin $compress_opts > $file_to_create.$ext 2> $logfile"
                     file_to_create="$file_to_create.$ext"
                 fi
 
@@ -622,6 +675,7 @@ function __get_backup_tarball_command()
 {
     debug "__get_backup_tarball_command ()"
 
+    BM__TARBALL_GZIP_PIGZ="false"
     case $BM_TARBALL_FILETYPE in
         tar)
             __get_flags_tar_blacklist "$target"
@@ -629,7 +683,12 @@ function __get_backup_tarball_command()
         ;;
         tar.gz)
             __get_flags_tar_blacklist "$target"
-            command="$tar $incremental $blacklist $dumpsymlinks $BM_TARBALL_EXTRA_OPTIONS -p -c -z -f"
+            if [[ -n "$pigz" ]]; then
+                BM__TARBALL_GZIP_PIGZ="true"
+                command="$tar $incremental $blacklist $dumpsymlinks $BM_TARBALL_EXTRA_OPTIONS -p -c -f"
+            else
+                command="$tar $incremental $blacklist $dumpsymlinks $BM_TARBALL_EXTRA_OPTIONS -p -c -z -f"
+            fi
         ;;
         tar.bz2|tar.bz)
             if [[ ! -x $bzip ]]; then
@@ -703,10 +762,24 @@ function build_clear_archive
         # the common commandline
         *)
             BM__CURRENT_COMMAND="generic"
-            debug "$command $file_to_create \"$target\" > $logfile 2>&1"
-            tail_logfile "$logfile"
-            debug "$command $file_to_create \"$target\""
-            $command $file_to_create "$target" > $logfile 2>&1 || error_code=$?
+            if [[ "$BM_TARBALL_FILETYPE" = "tar.gz" ]] && [[ "$BM__TARBALL_GZIP_PIGZ" = "true" ]]; then
+                pigz_threads="$(__get_pigz_threads_opt)"
+                debug "$command - \"$target\" 2> $logfile | $nice_bin -n $BM_ARCHIVE_NICE_LEVEL $pigz -f -q -9 $pigz_threads > $file_to_create 2>> $logfile"
+                tail_logfile "$logfile"
+                $command - "$target" 2> $logfile | $nice_bin -n $BM_ARCHIVE_NICE_LEVEL $pigz -f -q -9 $pigz_threads > "$file_to_create" 2>> $logfile
+                tar_status=${PIPESTATUS[0]}
+                pigz_status=${PIPESTATUS[1]}
+                if [[ $tar_status -ne 0 ]]; then
+                    error_code=$tar_status
+                elif [[ $pigz_status -ne 0 ]]; then
+                    error_code=$pigz_status
+                fi
+            else
+                debug "$command $file_to_create \"$target\" > $logfile 2>&1"
+                tail_logfile "$logfile"
+                debug "$command $file_to_create \"$target\""
+                $command $file_to_create "$target" > $logfile 2>&1 || error_code=$?
+            fi
             check_error_code "$error_code" "$file_to_create" "$logfile"
         ;;
     esac
@@ -734,10 +807,28 @@ function build_encrypted_archive
 
     file_to_create="$file_to_create.gpg"
 
-    debug "$command - \"$target\" 2>>$logfile | $gpg $BM__GPG_HOMEDIR -r \"$BM_ENCRYPTION_RECIPIENT\" -e > $file_to_create 2>> $logfile"
-    tail_logfile "$logfile"
+    if [[ "$BM_TARBALL_FILETYPE" = "tar.gz" ]] && [[ "$BM__TARBALL_GZIP_PIGZ" = "true" ]]; then
+        pigz_threads="$(__get_pigz_threads_opt)"
+        debug "$command - \"$target\" 2>>$logfile | $nice_bin -n $BM_ARCHIVE_NICE_LEVEL $pigz -f -q -9 $pigz_threads | $gpg $BM__GPG_HOMEDIR -r \"$BM_ENCRYPTION_RECIPIENT\" -e > $file_to_create 2>> $logfile"
+        tail_logfile "$logfile"
 
-    $command - "$target" 2>>$logfile | $gpg $BM__GPG_HOMEDIR -r "$BM_ENCRYPTION_RECIPIENT" -e > $file_to_create 2>> $logfile || error_code=$?
+        $command - "$target" 2>>$logfile | $nice_bin -n $BM_ARCHIVE_NICE_LEVEL $pigz -f -q -9 $pigz_threads | $gpg $BM__GPG_HOMEDIR -r "$BM_ENCRYPTION_RECIPIENT" -e > $file_to_create 2>> $logfile
+        tar_status=${PIPESTATUS[0]}
+        pigz_status=${PIPESTATUS[1]}
+        gpg_status=${PIPESTATUS[2]}
+        if [[ $tar_status -ne 0 ]]; then
+            error_code=$tar_status
+        elif [[ $pigz_status -ne 0 ]]; then
+            error_code=$pigz_status
+        elif [[ $gpg_status -ne 0 ]]; then
+            error_code=$gpg_status
+        fi
+    else
+        debug "$command - \"$target\" 2>>$logfile | $gpg $BM__GPG_HOMEDIR -r \"$BM_ENCRYPTION_RECIPIENT\" -e > $file_to_create 2>> $logfile"
+        tail_logfile "$logfile"
+
+        $command - "$target" 2>>$logfile | $gpg $BM__GPG_HOMEDIR -r "$BM_ENCRYPTION_RECIPIENT" -e > $file_to_create 2>> $logfile || error_code=$?
+    fi
     check_error_code "$error_code" "$file_to_create" "$logfile"
 }
 

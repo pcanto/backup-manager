@@ -67,6 +67,11 @@ export BM_ARCHIVE_STRICTPURGE="true"
 # Choose a nice level from -20 (most favorable scheduling) to 19 (least favorable).
 export BM_ARCHIVE_NICE_LEVEL="10"
 
+# If pigz is available, gzip compression will use it with this thread count.
+# Supported values: "half" (default), "all", or a positive integer.
+# Keep this low to reduce CPU impact on desktops. Set to 1 for single-core.
+export BM_GZIP_THREADS="half"
+
 # The backup method to use.
 # Available methods are:
 # - tarball

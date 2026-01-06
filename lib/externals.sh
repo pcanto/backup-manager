@@ -12,6 +12,7 @@ zip=$(bm_find_executable zip) || true
 bzip=$(bm_find_executable bzip2) || true
 pbzip2=$(bm_find_executable pbzip2) || true
 gzip=$(bm_find_executable gzip) || true
+pigz=$(bm_find_executable pigz) || true
 gpg=$(bm_find_executable gpg) || true
 xz=$(bm_find_executable xz) || true
 zstd=$(bm_find_executable zstd) || true
