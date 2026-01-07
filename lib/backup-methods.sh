@@ -676,6 +676,7 @@ function __get_backup_tarball_command()
     debug "__get_backup_tarball_command ()"
 
     BM__TARBALL_GZIP_PIGZ="false"
+    BM__TARBALL_COMMAND=""
     case $BM_TARBALL_FILETYPE in
         tar)
             __get_flags_tar_blacklist "$target"
@@ -736,7 +737,7 @@ function __get_backup_tarball_command()
             return 1
         ;;
     esac
-    echo "$nice_bin -n $BM_ARCHIVE_NICE_LEVEL $command"
+    BM__TARBALL_COMMAND="$nice_bin -n $BM_ARCHIVE_NICE_LEVEL $command"
 }
 
 function build_clear_archive
@@ -839,8 +840,9 @@ function __build_local_archive()
     debug "__build_local_archive ($target, $dir_name)"
 
     file_to_create=$(__get_file_to_create "$target")
-    command="$(__get_backup_tarball_command)" ||
+    __get_backup_tarball_command ||
         error "The archive type \"\$BM_TARBALL_FILETYPE\" is not supported."
+    command="$BM__TARBALL_COMMAND"
 
     # dar is not like tar, we have to manually check for existing .1.dar files
     if [[ $BM_TARBALL_FILETYPE = dar ]]; then

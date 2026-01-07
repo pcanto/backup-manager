@@ -169,6 +169,7 @@ function bm_init_env()
         export BM__GPG_HOMEDIR="--homedir /root/.gnupg"
     fi
     check_logger
+    bm_log_externals
 }
 
 function bm_init_today()
@@ -233,5 +234,4 @@ function create_directories()
         chmod $BM_REPOSITORY_CHMOD $BM_REPOSITORY_ROOT
     fi
 }
-
 

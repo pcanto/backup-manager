@@ -47,3 +47,9 @@ dd=$(bm_find_executable dd) || true
 mongodump=$(bm_find_executable mongodump) || true
 mongo=$(bm_find_executable mongo) || true
 mongosh=$(bm_find_executable mongosh) || true
+
+function bm_log_externals()
+{
+    debug "Externals: tar=${tar:-none} gzip=${gzip:-none} pigz=${pigz:-none} bzip2=${bzip:-none} pbzip2=${pbzip2:-none}"
+    debug "Externals: xz=${xz:-none} zstd=${zstd:-none} lzma=${lzma:-none} dar=${dar:-none} gpg=${gpg:-none}"
+}
